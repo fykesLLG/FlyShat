@@ -3,21 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AnonChat v1</title>
+    <title>FlyChat</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Ваши скрипты Gun.js -->
-    <script src="https://cdn.jsdelivr.net/npm/gun/examples/jquery.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
+    <!-- Подключаем официальный и самый стабильный веб-сокет клиент -->
+    <script src="https://pusher.com"></script>
 </head>
 <body>
     <div class="chat-app">
         <div class="header">
-            <h3>🕵️ Anonymous Chat v1</h3>
+            <h3>🛸 FlyChat Global</h3>
         </div>
         <div class="messages" id="msgBox"></div>
         <div class="input-row">
-            <input type="text" id="textInp" placeholder="Сообщение..." autocomplete="off">
+            <input type="text" id="textInp" placeholder="Напишите сообщение..." autocomplete="off">
             <button id="sendBtn">➤</button>
         </div>
     </div>
