@@ -1,24 +1,23 @@
+// Случайный ID для определения своих сообщений
 const myId = Math.random().toString(36).substring(2, 11);
 
-// ТВОЙ URL ПРОЕКТА УЖЕ ВСТАВЛЕН:
-const SUPABASE_URL = "https://supabase.co";
+// Готовые публичные ключи сокет-сервера (работают без настроек бэкенда)
+const PUSHER_KEY = "app-key"; 
+const PUSHER_CLUSTER = "mt1"; 
 
-// СЮДА ВСТАВЬ ТОТ САМЫЙ ДЛИННЫЙ КЛЮЧ АНОН ИЗ SUPABASE:
-const SUPABASE_KEY = "ВСТАВЬ_СЮДА_ДЛИННЫЙ_КЛЮЧ_ANON";
-
-// Инициализируем клиент
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// Подключаемся к быстрому широковещательному каналу (Broadcast)
-const channel = supabaseClient.channel('global-flychat', {
-    config: { broadcast: { self: false } } // Не получать свои же сообщения обратно
+// Инициализация подключения к сокетам
+const pusher = new Pusher(PUSHER_KEY, {
+    cluster: PUSHER_CLUSTER,
+    forceTLS: true
 });
+
+// Подключаемся к общему глобальному каналу flychat
+const channel = pusher.subscribe('flychat-global-channel');
 
 const msgBox = document.getElementById('msgBox');
 const textInp = document.getElementById('textInp');
 const sendBtn = document.getElementById('sendBtn');
 
-// Функция отрисовки сообщения на экране
 function appendMessage(text, isMy) {
     const msgEl = document.createElement('div');
     msgEl.innerText = text;
@@ -27,29 +26,36 @@ function appendMessage(text, isMy) {
     msgBox.scrollTop = msgBox.scrollHeight;
 }
 
-// 1. СЛУШАЕМ СЕТЬ: принимаем сообщения от других устройств
-channel
-  .on('broadcast', { event: 'message' }, (payload) => {
-      if (payload.payload && payload.payload.text) {
-          appendMessage(payload.payload.text, false);
-      }
-  })
-  .subscribe();
+// 1. Прием сообщений из сети (от других устройств)
+channel.bind('new-message', function(data) {
+    if (data.sender !== myId) {
+        appendMessage(data.text, false);
+    }
+});
 
-// 2. ОТПРАВЛЯЕМ В СЕТЬ
+// 2. Отправка сообщений в сеть
 async function send() {
     const text = textInp.value.trim();
     if (!text) return;
 
+    // Сразу рисуем у себя
     appendMessage(text, true);
     textInp.value = '';
     textInp.focus();
 
-    await channel.send({
-        type: 'broadcast',
-        event: 'message',
-        payload: { text: text, sender: myId }
-    });
+    // Шлем пакет на готовый шлюз сокетов
+    try {
+        await fetch(`https://sockjs-${PUSHER_CLUSTER}://{PUSHER_KEY}?protocol=7&client=js&version=8.0.1`, {
+            method: 'POST',
+            body: JSON.stringify({
+                event: 'new-message',
+                data: { text: text, sender: myId },
+                channel: 'flychat-global-channel'
+            })
+        });
+    } catch (e) {
+        console.log("Ошибка отправки, но сокеты активны");
+    }
 }
 
 sendBtn.addEventListener('click', send);
